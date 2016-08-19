@@ -1,0 +1,135 @@
+Race condition解決之道
+
+
+--樂觀鎖
+
+    預設彼此沒有衝突的情況下。當用戶提交更新前先進行檢查該數據是否已被修改，若已有更新，則回傳錯誤訊息，由用戶決定如何去做。
+
+    實現方法：
+
+        --版本
+
+            在更新前先確認版本是否與讀取時的版本一致。
+
+            在更新的當下會將版本+1。
+
+                使用方式：
+
+                    /* 查詢出商品信息 */
+
+                    select (status,status,version) from t_goods where id=id
+
+                    /*
+
+                        根据商品信息生成訂單
+
+                        修改商品status為2
+
+                    */
+
+                    update t_goods set status=2,version=version+1 where id=id and version=version;
+
+        --時間戳
+
+            使用方式與版本的使用方式大同小異。
+
+
+
+＃以下方法僅MYSQL適用--有Deadlock的問題
+--悲觀鎖(即透過資料庫的鎖機制進行鎖住的動作，在釋放前不允許其他人進行insert update delete的動作)
+
+    --Row Lock(IX鎖-排他鎖)
+
+        由於 InnoDB 預設是 Row-Level Lock
+
+
+       ＃所以只有「明確」的指定主鍵，MySQL 才會執行 Row lock (只鎖住被選取的資料例)，否則 MySQL 將會執行 Table Lock (將整個資料表單給鎖住)
+
+            例1: (明確指定主鍵，並且有此筆資料，row lock)
+
+                 SELECT * FROM products WHERE id='3' FOR UPDATE;
+
+            例2: (明確指定主鍵，若查無此筆資料，無 lock)
+
+                 SELECT * FROM products WHERE id='-1' FOR UPDATE;
+
+            例3: (無主鍵，table lock)
+
+                 SELECT * FROM products WHERE name='Mouse' FOR UPDATE;
+
+
+       ＃FOR UPDATE 僅適用於 InnoDB，且必須在交易區塊(BEGIN/COMMIT)中才能生效。
+
+
+       	使用方式：
+
+            		try{
+
+                		$db->beginTransaction();
+
+                		sql語法(句尾 + FOR UPDATE)
+
+                        		...
+
+                		依照需求拋出Exception
+
+                		$err = "內容";
+
+                		throw new Exception($err);
+
+
+
+
+
+                		/* 在此釋放出使用權 */
+				$db->commit();
+				$db = NULL;
+
+            		}catch(Exception $err){
+
+                		/* 在此釋放出使用權 */
+ 
+				$db->rollback();
+                 		print "Error: " . $err-＞getMessage() . "＜br/＞";
+
+
+            		}
+
+
+
+    --LOCK IN SHARE MODE(IS鎖-共享鎖)
+
+        事務A中有select ... lock in share mode未提交前，其它事務的可以"讀取本次事務前的最新值"，寫操作會阻塞直到事務A提交後才執行。
+
+        使用方式：
+
+            sql語法(句尾 + LOCK IN SHARE MODE)
+
+
+    
+     --LOCK TABLE(鎖整張表，連select也不能)
+
+   	使用方式：
+
+        	LOCK TABLES account WRITE;
+
+
+        	UPDATE account SET balnce = balance + ? WHERE id = 1;
+
+
+        	UNLOCK TABLES;
+
+     ＃for update的加鎖方式無非是比lock in share mode的方式多阻塞了select...lock in share mode的查詢方式，並不會阻塞快照讀
+
+
+資料來源:
+	了解樂觀鎖與悲觀鎖 -- http://www.hollischuang.com/archives/934
+
+	樂觀鎖的使用方式   -- http://chenzhou123520.iteye.com/blog/1863407
+	MYSQL鎖機制        -- http://thebye85.iteye.com/blog/1463546
+
+	                   -- http://blog.csdn.net/cug_jiang126com/article/details/50544728
+
+	                   -- http://chihping.aflypen.com/2803.html
+
+	鎖定表             -- http://xyz.cinc.biz/2013/04/mysql-lock-tables.html

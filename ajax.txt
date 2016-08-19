@@ -1,0 +1,59 @@
+function check()
+{
+    
+/**************************取得資料*********************************/
+
+	var select_op=$('#select_op').val();
+	$.ajax({
+
+        	/* 指定要進行呼叫的位置 */
+
+		url: "jqajax_check.php",
+	        /* 傳送給Server資料的值 */
+	        data: "&select_op="+select_op,
+		/* 請求方式 GET/POST */
+	
+       type:"POST", 
+                /* 伺服器回傳的資料類型(有xml, json, script, html, jsonp, text) */
+	        dataType:'text',
+	
+       success: function(message){
+	        	/* 請求成功時執行的函式 */
+	        	/*****執行成功的操作******/
+
+                	document.getElementById("message").innerHTML=message;
+
+        	},error: function(jqXHR, textStatus, errorThrown){
+			/* 請求失敗時執行的函式 */
+
+        		/*****執行失敗的操作******/
+
+            		document.getElementById("message").innerHTML=errorThrown;
+
+       		}
+
+    	});
+
+}
+
+
+url      => 指定要進行呼叫的位置
+
+data	 => 傳送給Server資料的值
+
+type	 => 請求方式 GET/POST
+
+dataType => 伺服器回傳的資料類型(有xml, json, script, html, jsonp, text)
+
+sucess	 => 請求成功時執行的函式
+
+error	 => 請求失敗時執行的函式
+
+
+
+
+
+資料來源
+	--https://dotblogs.com.tw/jhsiao/archive/2014/08/31/146422.aspx
+
+	--http://expect7.pixnet.net/blog/post/37919326-%5B%E7%A8%8B%E5%BC%8F%5D%5Bjquery%5D-jquery%E4%B8%AD%E7%9A%84ajax%E7%9A%84%E5%9F%BA%E7%A4%8E%E9%81%8B%E7%94%A8%E3%80%82%E6%8F%90%E4%BE%9B%E7%AF%84
